@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
 
+#include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>

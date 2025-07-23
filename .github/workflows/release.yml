@@ -8,6 +8,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install build tools
-      run: apk add --no-cache gcc musl-dev make
+      run: apk add --no-cache clang musl-dev make
     - name: Build
       run: make

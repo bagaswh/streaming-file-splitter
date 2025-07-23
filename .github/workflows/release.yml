@@ -1,5 +1,9 @@
 name: Build
-on: [push, pull_request]
+on: 
+  push:
+  pull_request:
+  release:
+    types: [created]
 
 jobs:
   build:
@@ -11,3 +15,55 @@ jobs:
       run: apk add --no-cache clang musl-dev make
     - name: Build
       run: make
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-linux-x86_64
+        path: build/main
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: binary-linux-x86_64
+        path: ./
+    - name: Rename binary with version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        mv main streaming-file-splitter-linux-x86_64
+    - name: Create Release
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          ## Release ${{ github.ref_name }}
+          
+          ### Platform Support
+          - **Linux x86_64 only** (statically linked with musl)
+          
+          ### Download
+          Download the binary and make it executable:
+          ```bash
+          chmod +x streaming-file-splitter-linux-x86_64
+          ./streaming-file-splitter-linux-x86_64 -h
+          ```
+        draft: false
+        prerelease: false
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./streaming-file-splitter-linux-x86_64
+        asset_name: streaming-file-splitter-linux-x86_64
+        asset_content_type: application/octet-stream

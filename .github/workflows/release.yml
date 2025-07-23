@@ -45,3 +45,14 @@ jobs:
         gh release create ${{ github.ref_name }} \
           --title "Release ${{ github.ref_name }}" \
           --notes "## Release ${{ github.ref_name }}
+
+        ### Platform Support
+        - **Linux x86_64 only** (statically linked with musl)
+
+        ### Download
+        Download the binary and make it executable:
+        \`\`\`bash
+        chmod +x streaming-file-splitter-linux-x86_64
+        ./streaming-file-splitter-linux-x86_64 -h
+        \`\`\`" \
+          streaming-file-splitter-linux-x86_64

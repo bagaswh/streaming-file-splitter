@@ -1,0 +1,13 @@
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build tools
+      run: apk add --no-cache gcc musl-dev make
+    - name: Build
+      run: make

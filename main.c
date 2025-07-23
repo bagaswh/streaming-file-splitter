@@ -1,6 +1,5 @@
 #define _GNU_SOURCE
 
-#include <argp.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -119,30 +118,16 @@ struct program_flags
 read_flags(int argc, char **argv)
 {
     bool overwrite_existing_parts_file = false;
-
-    static struct option long_options[] = {
-        { "bytes", required_argument, 0, 'b' },
-        { "overwrite-existing", no_argument, 0,
-          'o' }, // Changed to no_argument
-        { "help", no_argument, 0, 'h' },
-        { 0, 0, 0, 0 }
-    };
-
     size_t split_size_in_bytes = 0;
 
-    while (1) {
-        int c = getopt_long(argc, argv, "b:oh", long_options,
-                            NULL); // Added 'o' and 'h'
-        if (c == -1)
-            break;
-
+    int c;
+    while ((c = getopt(argc, argv, "b:oh")) != -1) {
         switch (c) {
         case 'b':
             struct parse_bytes_result result = parse_bytes(optarg);
             if (result.status != OK)
-                log_fatalf(
-                    "failed to parse unit '%s' in option -b/--bytes: %s\n",
-                    optarg, parse_bytes_status_str(result.status));
+                log_fatalf("failed to parse unit '%s' in option -b: %s\n",
+                           optarg, parse_bytes_status_str(result.status));
             else
                 split_size_in_bytes = result.bytes;
             break;
@@ -150,12 +135,9 @@ read_flags(int argc, char **argv)
             overwrite_existing_parts_file = true;
             break;
         case 'h':
-            // Handle help option here
             break;
         case '?':
-            // getopt_long already printed an error message
-            log_fatalf(
-                "Invalid option. Use -h/--help for usage information.\n");
+            log_fatalf("Invalid option. Use -h for usage information.\n");
             break;
         default:
             log_fatalf("Unknown option: %c\n", c);
@@ -179,6 +161,7 @@ read_flags(int argc, char **argv)
         .overwrite_existing_part_files = overwrite_existing_parts_file,
     };
 }
+
 int
 num_digits(int n)
 {
@@ -276,17 +259,17 @@ main(int argc, char **argv)
                    strerror(errno));
 
     int total_parts = in_stat.st_size / flags.split_size_in_bytes;
-    if (in_stat.st_size % flags.split_size_in_bytes) {
+    if (in_stat.st_size % flags.split_size_in_bytes)
         total_parts++;
-    }
     int parts_max_digits = num_digits(total_parts);
-
     size_t in_file_name_length = strlen(flags.file);
     char *out_file_name =
         malloc_or_die(in_file_name_length + 1 + parts_max_digits);
     strcpy(out_file_name, flags.file);
+
     size_t in_file_offset = in_stat.st_size;
     size_t write_len = 0;
+
     while (total_parts) {
         subtract_saturated(in_file_offset, flags.split_size_in_bytes,
                            write_len);
@@ -299,21 +282,20 @@ main(int argc, char **argv)
             log_fatalf(
                 "The file '%s' already exists, I won't touch it as I "
                 "may corrupt it. If YOU want me to overwrite it, pass "
-                "-o/--overwrite-existing option. Unti then, so long!: %s\n",
-                out_file_name, strerror(errno));
+                "-o/--overwrite-existing option. Unti then, so long!\n",
+                out_file_name);
 
         int out_fd_part = open(out_file_name, O_CREAT | O_WRONLY | O_TRUNC);
         if (out_fd_part == -1)
             log_fatalf("cannot open file part '%s': %s\n", out_file_name,
                        strerror(errno));
 
-        if (write(out_fd_part, in_mmap + in_file_offset, write_len) == -1) {
+        if (write(out_fd_part, in_mmap + in_file_offset, write_len) == -1)
             log_fatalf("cannot write %zu bytes to file '%s': %s\n", write_len,
                        out_file_name, strerror(errno));
-        }
 
         if (ftruncate(in_fd, in_file_offset) != 0)
-            log_fatalf("failed to fallocate file '%s': %s\n", flags.file,
+            log_fatalf("failed to ftruncate file '%s': %s\n", flags.file,
                        strerror(errno));
 
         printf("part filename: %s; write_len: %zu\n", out_file_name,

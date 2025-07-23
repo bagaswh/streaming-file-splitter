@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "format": "c",
+        "queue": "c",
+        "thread": "c",
+        "vector": "c",
+        "stdarg.h": "c",
+        "stdbool.h": "c"
+    }
+}
